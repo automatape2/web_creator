@@ -18,7 +18,7 @@ class PageController extends Controller
             ->with('components')
             ->firstOrFail();
         
-        return view('pages.show', compact('page'));
+        return view('site.show', compact('page'));
     }
 
     /**
@@ -31,7 +31,7 @@ class PageController extends Controller
             ->latest()
             ->get();
         
-        return view('pages.index', compact('pages'));
+        return view('site.index', compact('pages'));
     }
 
     /**
@@ -46,6 +46,6 @@ class PageController extends Controller
         
         $page->load('components');
         
-        return view('pages.show', compact('page'));
+        return view('site.show', compact('page'));
     }
 }
