@@ -65,7 +65,9 @@
             </flux:dropdown>
         </flux:header>
 
-        @yield('content')
+        <flux:main>
+            @yield('content')
+        </flux:main>
 
         @fluxScripts
     </body>

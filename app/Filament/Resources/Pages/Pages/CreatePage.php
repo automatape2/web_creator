@@ -5,8 +5,8 @@ namespace App\Filament\Resources\Pages\Pages;
 use App\Filament\Resources\Pages\PageResource;
 use App\Services\AIPageGeneratorService;
 use Filament\Actions\Action;
-use Filament\Schemas\Components\Select;
-use Filament\Schemas\Components\Textarea;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreatePage extends CreateRecord
