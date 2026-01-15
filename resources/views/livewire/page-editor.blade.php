@@ -40,6 +40,23 @@
             </p>
         </div>
 
+        <!-- Grid Controls -->
+        <div class="mb-4 flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <button wire:click="addRow" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700">
+                    + Agregar Fila
+                </button>
+                @if($gridRows > 1)
+                <button wire:click="removeRow" class="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700">
+                    - Quitar Fila
+                </button>
+                @endif
+            </div>
+            <div class="text-sm text-gray-600">
+                Filas: <span class="font-semibold">{{ $gridRows }}</span> × Columnas: <span class="font-semibold">{{ $gridCols }}</span>
+            </div>
+        </div>
+
         <!-- Grid Container -->
         <div class="bg-white rounded-lg shadow-lg p-4 overflow-x-auto">
             <div class="inline-grid gap-1" style="grid-template-columns: repeat({{ $gridCols }}, 80px); grid-template-rows: repeat({{ $gridRows }}, 80px);">

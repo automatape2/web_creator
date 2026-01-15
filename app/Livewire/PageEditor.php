@@ -13,7 +13,7 @@ class PageEditor extends Component
     public $componentContent = [];
     public $componentSettings = [];
     public $selectedCell = null; // [row, col]
-    public $gridRows = 12;
+    public $gridRows = 1; // Empezar con 1 fila
     public $gridCols = 12;
     public $showComponentMenu = false;
     
@@ -153,6 +153,18 @@ class PageEditor extends Component
     {
         $this->page->update(['is_published' => !$this->page->is_published]);
         $this->page->refresh();
+    }
+    
+    public function addRow()
+    {
+        $this->gridRows++;
+    }
+    
+    public function removeRow()
+    {
+        if ($this->gridRows > 1) {
+            $this->gridRows--;
+        }
     }
     
     public function render()
