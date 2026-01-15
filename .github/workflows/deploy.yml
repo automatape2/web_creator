@@ -9,7 +9,7 @@ jobs:
   deploy:
     name: Deploy Laravel to FTP
     runs-on: ubuntu-latest
-    environment: Testing
+    environment: Production
     
     steps:
       - name: Checkout code
