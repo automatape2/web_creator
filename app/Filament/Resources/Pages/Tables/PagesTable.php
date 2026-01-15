@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Pages\Tables;
 
 use Filament\Actions\BulkActionGroup;
+use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\IconColumn;
@@ -71,6 +72,10 @@ class PagesTable
                 EditAction::make(),
             ])
             ->toolbarActions([
+                CreateAction::make()
+                    ->label('Nueva Página')
+                    ->url(route('page.create.start')),
+                    
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                 ]),
