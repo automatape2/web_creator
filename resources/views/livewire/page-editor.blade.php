@@ -1,7 +1,7 @@
 <div class="min-h-screen bg-gray-50">
     <!-- Editor Toolbar -->
     <div class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 py-3">
+        <div class="max-w-full mx-auto px-4 py-3">
             <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-4">
                     <a href="{{ route('filament.admin.resources.pages.index') }}" class="text-gray-600 hover:text-gray-900">
@@ -12,6 +12,9 @@
                     <h1 class="text-xl font-semibold text-gray-900">{{ $page->title }}</h1>
                     <span class="px-2 py-1 text-xs rounded-full {{ $page->is_published ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
                         {{ $page->is_published ? 'Publicada' : 'Borrador' }}
+                    </span>
+                    <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-700">
+                        📐 Editor de Cuadrícula
                     </span>
                 </div>
                 
@@ -29,69 +32,123 @@
         </div>
     </div>
 
-    <!-- Add Component Floating Button -->
-    <div x-data="{ showMenu: false }" class="fixed bottom-6 right-6 z-40">
-        <div x-show="showMenu" @click.away="showMenu = false" class="absolute bottom-16 right-0 w-64 bg-white rounded-lg shadow-lg border border-gray-200 max-h-96 overflow-y-auto">
-            <div class="p-2">
-                <p class="px-3 py-2 text-xs font-semibold text-gray-500 uppercase">Agregar Componente</p>
+    <!-- Grid Editor -->
+    <div class="p-6">
+        <div class="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <p class="text-sm text-blue-800">
+                <strong>💡 Cómo usar:</strong> Haz clic en cualquier celda de la cuadrícula para agregar un componente. Funciona como Excel.
+            </p>
+        </div>
+
+        <!-- Grid Container -->
+        <div class="bg-white rounded-lg shadow-lg p-4 overflow-x-auto">
+            <div class="inline-grid gap-1" style="grid-template-columns: repeat({{ $gridCols }}, 80px); grid-template-rows: repeat({{ $gridRows }}, 80px);">
+                @for($row = 1; $row <= $gridRows; $row++)
+                    @for($col = 1; $col <= $gridCols; $col++)
+                        @php
+                            $cellComponent = $page->components->first(function($comp) use ($row, $col) {
+                                $pos = $comp->settings['grid_position'] ?? null;
+                                return $pos && $pos['row'] == $row && $pos['col'] == $col;
+                            });
+                            
+                            $isSelected = $selectedCell && $selectedCell['row'] == $row && $selectedCell['col'] == $col;
+                        @endphp
+                        
+                        <div wire:click="selectCell({{ $row }}, {{ $col }})"
+                             class="border-2 transition-all cursor-pointer relative group
+                                    {{ $isSelected ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-300' : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50' }}
+                                    {{ $cellComponent ? 'bg-green-50 border-green-400' : '' }}">
+                            
+                            <div class="absolute top-0 left-0 text-[8px] text-gray-400 px-1">
+                                {{ chr(64 + $col) }}{{ $row }}
+                            </div>
+                            
+                            @if($cellComponent)
+                                <div class="h-full flex flex-col items-center justify-center p-1">
+                                    <div class="text-2xl">
+                                        @switch($cellComponent->type)
+                                            @case('hero') 🎯 @break
+                                            @case('text') 📝 @break
+                                            @case('image') 🖼️ @break
+                                            @case('video') 🎥 @break
+                                            @case('gallery') 🎨 @break
+                                            @case('features') ⭐ @break
+                                            @case('contact_form') 📧 @break
+                                            @case('testimonials') 💬 @break
+                                            @case('pricing') 💰 @break
+                                            @case('faq') ❓ @break
+                                            @case('cta') 📢 @break
+                                            @default 📦
+                                        @endswitch
+                                    </div>
+                                    <div class="text-[9px] font-semibold text-gray-600 text-center mt-1">
+                                        {{ ucfirst($cellComponent->type) }}
+                                    </div>
+                                    
+                                    <div class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 flex gap-1">
+                                        <button wire:click.stop="editComponent({{ $cellComponent->id }})" 
+                                                class="bg-blue-500 text-white rounded px-1 text-[10px] hover:bg-blue-600">
+                                            ✏️
+                                        </button>
+                                        <button wire:click.stop="deleteComponent({{ $cellComponent->id }})" 
+                                                wire:confirm="¿Eliminar?"
+                                                class="bg-red-500 text-white rounded px-1 text-[10px] hover:bg-red-600">
+                                            🗑️
+                                        </button>
+                                    </div>
+                                </div>
+                            @else
+                                <div class="h-full flex items-center justify-center text-gray-300 text-2xl">
+                                    +
+                                </div>
+                            @endif
+                        </div>
+                    @endfor
+                @endfor
+            </div>
+        </div>
+    </div>
+
+    @if($showComponentMenu && $selectedCell)
+    <div class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" wire:click="$set('showComponentMenu', false)">
+        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full p-6" @click.stop>
+            <h3 class="text-lg font-bold text-gray-900 mb-4">
+                Agregar componente en celda {{ chr(64 + $selectedCell['col']) }}{{ $selectedCell['row'] }}
+            </h3>
+            
+            <div class="grid grid-cols-3 gap-3">
                 @foreach(\App\Models\PageComponent::getAvailableTypes() as $type => $label)
-                <button wire:click="addComponent('{{ $type }}')"
-                        @click="showMenu = false"
-                        class="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded">
-                    {{ $label }}
+                <button wire:click="addComponentToCell('{{ $type }}')"
+                        class="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all text-center">
+                    <div class="text-3xl mb-2">
+                        @switch($type)
+                            @case('hero') 🎯 @break
+                            @case('text') 📝 @break
+                            @case('image') 🖼️ @break
+                            @case('video') 🎥 @break
+                            @case('gallery') 🎨 @break
+                            @case('features') ⭐ @break
+                            @case('contact_form') 📧 @break
+                            @case('testimonials') 💬 @break
+                            @case('pricing') 💰 @break
+                            @case('faq') ❓ @break
+                            @case('cta') 📢 @break
+                        @endswitch
+                    </div>
+                    <div class="text-sm font-semibold text-gray-700">{{ $label }}</div>
                 </button>
                 @endforeach
             </div>
-        </div>
-        
-        <button @click="showMenu = !showMenu" class="w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-            </svg>
-        </button>
-    </div>
-
-    <!-- Page Content -->
-    <div class="max-w-7xl mx-auto py-8">
-        @if($page->components->isEmpty())
-        <div class="text-center py-12">
-            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-            </svg>
-            <h3 class="mt-2 text-sm font-medium text-gray-900">Sin componentes</h3>
-            <p class="mt-1 text-sm text-gray-500">Comienza agregando un componente a tu página.</p>
-        </div>
-        @else
-        <div class="space-y-4">
-            @foreach($page->components->sortBy('order') as $component)
-            <div class="relative group">
-                <!-- Component Edit Overlay -->
-                <div class="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-2 z-10">
-                    <button wire:click="editComponent({{ $component->id }})" 
-                            class="px-3 py-1 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 shadow-lg">
-                        ✏️ Editar
-                    </button>
-                    <button wire:click="deleteComponent({{ $component->id }})" 
-                            wire:confirm="¿Eliminar este componente?"
-                            class="px-3 py-1 bg-red-600 text-white text-xs rounded-lg hover:bg-red-700 shadow-lg">
-                        🗑️
-                    </button>
-                </div>
-                
-                <!-- Component Render -->
-                <div class="{{ $editingComponent === $component->id ? 'ring-4 ring-blue-500' : 'ring-1 ring-gray-200 group-hover:ring-2 group-hover:ring-blue-300' }} rounded-lg overflow-hidden bg-white transition-all">
-                    @include('components.types.' . $component->type, [
-                        'content' => $component->content ?? [],
-                        'settings' => $component->settings ?? []
-                    ])
-                </div>
+            
+            <div class="mt-4 text-center">
+                <button wire:click="$set('showComponentMenu', false)" class="px-4 py-2 text-gray-600 hover:text-gray-800">
+                    Cancelar
+                </button>
             </div>
-            @endforeach
         </div>
-        @endif
     </div>
+    @endif
 
-    <!-- Edit Component Modal -->
     @if($editingComponent)
     <div class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -100,71 +157,24 @@
             </div>
             
             <div class="p-6 space-y-6">
-                <!-- Content Fields -->
+                @forelse($componentContent as $key => $value)
                 <div>
-                    <h4 class="text-sm font-medium text-gray-900 mb-3">Contenido</h4>
-                    <div class="space-y-3">
-                        @forelse($componentContent as $key => $value)
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">{{ ucfirst($key) }}</label>
-                            @if(strlen($value) > 100)
-                            <textarea wire:model="componentContent.{{ $key }}" 
-                                      rows="4" 
-                                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
-                            @else
-                            <input type="text" 
-                                   wire:model="componentContent.{{ $key }}" 
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            @endif
-                        </div>
-                        @empty
-                        <div class="text-center py-4">
-                            <button wire:click="$set('componentContent.titulo', '')" class="text-sm text-blue-600 hover:text-blue-700">
-                                + Agregar campo de contenido
-                            </button>
-                        </div>
-                        @endforelse
-                        
-                        @if(!empty($componentContent))
-                        <button type="button" 
-                                x-data="{}"
-                                @click="$wire.componentContent[prompt('Nombre del campo:')] = ''"
-                                class="text-sm text-blue-600 hover:text-blue-700">
-                            + Agregar otro campo
-                        </button>
-                        @endif
-                    </div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">{{ ucfirst($key) }}</label>
+                    @if(strlen($value) > 100)
+                    <textarea wire:model="componentContent.{{ $key }}" 
+                              rows="4" 
+                              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"></textarea>
+                    @else
+                    <input type="text" 
+                           wire:model="componentContent.{{ $key }}" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    @endif
                 </div>
-
-                <!-- Settings Fields -->
-                <div>
-                    <h4 class="text-sm font-medium text-gray-900 mb-3">Configuración</h4>
-                    <div class="space-y-3">
-                        @forelse($componentSettings as $key => $value)
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">{{ ucfirst($key) }}</label>
-                            <input type="text" 
-                                   wire:model="componentSettings.{{ $key }}" 
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        </div>
-                        @empty
-                        <div class="text-center py-4">
-                            <button wire:click="$set('componentSettings.color', 'blue')" class="text-sm text-blue-600 hover:text-blue-700">
-                                + Agregar configuración
-                            </button>
-                        </div>
-                        @endforelse
-                        
-                        @if(!empty($componentSettings))
-                        <button type="button" 
-                                x-data="{}"
-                                @click="$wire.componentSettings[prompt('Nombre de la configuración:')] = ''"
-                                class="text-sm text-blue-600 hover:text-blue-700">
-                            + Agregar otra configuración
-                        </button>
-                        @endif
-                    </div>
+                @empty
+                <div class="text-center py-4 text-gray-500">
+                    Sin campos de contenido
                 </div>
+                @endforelse
             </div>
             
             <div class="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4 flex justify-end space-x-3">
@@ -172,7 +182,7 @@
                     Cancelar
                 </button>
                 <button wire:click="saveComponent" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
-                    Guardar Cambios
+                    Guardar
                 </button>
             </div>
         </div>
