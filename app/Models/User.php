@@ -64,6 +64,15 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the user's gravatar URL
+     */
+    public function gravatar(): string
+    {
+        $hash = md5(strtolower(trim($this->email)));
+        return "https://www.gravatar.com/avatar/{$hash}?d=mp&s=200";
+    }
+
+    /**
      * Get all pages owned by the user
      */
     public function pages(): HasMany
