@@ -45,13 +45,13 @@ class FortifyServiceProvider extends ServiceProvider
      */
     private function configureViews(): void
     {
-        Fortify::loginView(fn () => view('flux::auth.login'));
-        Fortify::verifyEmailView(fn () => view('flux::auth.verify-email'));
-        Fortify::twoFactorChallengeView(fn () => view('flux::auth.two-factor-challenge'));
-        Fortify::confirmPasswordView(fn () => view('flux::auth.confirm-password'));
-        Fortify::registerView(fn () => view('flux::auth.register'));
-        Fortify::resetPasswordView(fn () => view('flux::auth.reset-password'));
-        Fortify::requestPasswordResetLinkView(fn () => view('flux::auth.forgot-password'));
+        Fortify::loginView(fn () => view('site.auth.login'));
+        Fortify::verifyEmailView(fn () => view('site.auth.verify-email'));
+        Fortify::twoFactorChallengeView(fn () => view('site.auth.two-factor-challenge'));
+        Fortify::confirmPasswordView(fn () => view('site.auth.confirm-password'));
+        Fortify::registerView(fn () => view('site.auth.register'));
+        Fortify::resetPasswordView(fn () => view('site.auth.reset-password'));
+        Fortify::requestPasswordResetLinkView(fn () => view('site.auth.forgot-password'));
     }
 
     /**
