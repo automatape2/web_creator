@@ -15,6 +15,7 @@ Route::view('dashboard', 'dashboard')
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/my-pages', [PageController::class, 'index'])->name('pages.index');
     Route::get('/page/{page}/preview', [PageController::class, 'preview'])->name('page.preview');
+    Route::get('/page/{page}/edit', \App\Livewire\PageEditor::class)->name('page.edit');
 });
 
 // Ruta pública para ver páginas
