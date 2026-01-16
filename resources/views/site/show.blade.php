@@ -9,7 +9,9 @@
     
     @if($page->meta_tags)
         @foreach($page->meta_tags as $name => $content)
-            <meta name="{{ $name }}" content="{{ $content }}">
+            @if(is_string($content) && !in_array($name, ['grid_layout', 'grid_rows', 'structure']))
+                <meta name="{{ $name }}" content="{{ $content }}">
+            @endif
         @endforeach
     @endif
     
