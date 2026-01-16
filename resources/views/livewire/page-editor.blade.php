@@ -36,28 +36,32 @@
     <div class="p-6">
         <div class="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
             <p class="text-sm text-blue-800">
-                <strong>💡 Cómo usar:</strong> Selecciona columnas como checkboxes (deben ser consecutivas). Luego haz clic en "Confirmar" para agregar un componente.
+                <strong>💡 Cómo usar:</strong> Arrastra sobre las celdas para seleccionar el área del componente (ancho y alto). Luego elige el tipo de componente.
             </p>
-            @if(!empty($selectedCols))
+            @if($selectionStart && $selectionEnd)
+                @php
+                    $area = [
+                        'rowStart' => min($selectionStart['row'], $selectionEnd['row']),
+                        'rowEnd' => max($selectionStart['row'], $selectionEnd['row']),
+                        'colStart' => min($selectionStart['col'], $selectionEnd['col']),
+                        'colEnd' => max($selectionStart['col'], $selectionEnd['col']),
+                    ];
+                    $rows = ($area['rowEnd'] - $area['rowStart']) + 1;
+                    $cols = ($area['colEnd'] - $area['colStart']) + 1;
+                @endphp
                 <div class="mt-2 flex items-center gap-2">
                     <span class="text-sm font-semibold text-blue-900">
-                        Fila {{ $selectedRow }}: 
-                        @foreach($selectedCols as $c)
-                            {{ chr(64 + $c) }}{{ !$loop->last ? ', ' : '' }}
-                        @endforeach
-                        ({{ count($selectedCols) }} columna{{ count($selectedCols) > 1 ? 's' : '' }})
+                        Área seleccionada: {{ chr(64 + $area['colStart']) }}{{ $area['rowStart'] }} - {{ chr(64 + $area['colEnd']) }}{{ $area['rowEnd'] }}
+                        ({{ $rows }} fila{{ $rows > 1 ? 's' : '' }} × {{ $cols }} columna{{ $cols > 1 ? 's' : '' }})
                     </span>
-                    <button wire:click="confirmSelection" class="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700">
-                        ✓ Confirmar Selección
+                    @if(!$isDragging)
+                    <button wire:click="endSelection" class="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700">
+                        ✓ Agregar Componente
                     </button>
+                    @endif
                     <button wire:click="cancelSelection" class="px-3 py-1 bg-gray-400 text-white text-xs rounded hover:bg-gray-500">
                         ✗ Cancelar
                     </button>
-                </div>
-            @endif
-            @if(session('error'))
-                <div class="mt-2 text-sm text-red-700 bg-red-100 border border-red-300 rounded px-3 py-2">
-                    {{ session('error') }}
                 </div>
             @endif
         </div>
@@ -87,41 +91,52 @@
                         @php
                             $cellComponent = $page->components->first(function($comp) use ($row, $col) {
                                 $pos = $comp->settings['grid_position'] ?? null;
-                                if (!$pos || $pos['row'] != $row) return false;
+                                if (!$pos) return false;
                                 
+                                $rowspan = $pos['rowspan'] ?? 1;
                                 $colspan = $pos['colspan'] ?? 1;
+                                $componentRow = $pos['row'];
                                 $componentCol = $pos['col'];
                                 
-                                return $col >= $componentCol && $col < ($componentCol + $colspan);
+                                return $row >= $componentRow && $row < ($componentRow + $rowspan)
+                                    && $col >= $componentCol && $col < ($componentCol + $colspan);
                             });
 
-                            $isSelected = $selectedRow == $row && in_array($col, $selectedCols);
+                            // Calcular si está en el área seleccionada
+                            $isSelected = false;
+                            if ($selectionStart && $selectionEnd) {
+                                $minRow = min($selectionStart['row'], $selectionEnd['row']);
+                                $maxRow = max($selectionStart['row'], $selectionEnd['row']);
+                                $minCol = min($selectionStart['col'], $selectionEnd['col']);
+                                $maxCol = max($selectionStart['col'], $selectionEnd['col']);
+                                $isSelected = $row >= $minRow && $row <= $maxRow && $col >= $minCol && $col <= $maxCol;
+                            }
                             
-                            // Verificar si esta celda es la primera de un componente con colspan
-                            $isComponentStart = $cellComponent && ($cellComponent->settings['grid_position']['col'] ?? null) == $col;
+                            // Verificar si esta celda es la primera de un componente
+                            $isComponentStart = $cellComponent && 
+                                ($cellComponent->settings['grid_position']['row'] ?? null) == $row &&
+                                ($cellComponent->settings['grid_position']['col'] ?? null) == $col;
                             
                             // Si es parte de un componente pero no es el inicio, skip
                             if ($cellComponent && !$isComponentStart) {
                                 continue;
                             }
                             
+                            $componentRowspan = 1;
                             $componentColspan = 1;
                             if ($cellComponent) {
+                                $componentRowspan = $cellComponent->settings['grid_position']['rowspan'] ?? 1;
                                 $componentColspan = $cellComponent->settings['grid_position']['colspan'] ?? 1;
                             }
                         @endphp
 
-                        <div wire:click="selectCell({{ $row }}, {{ $col }})"
-                             style="{{ $cellComponent ? 'grid-column: span ' . $componentColspan . ';' : '' }}"
-                             class="border-2 transition-all cursor-pointer relative group
-                                    {{ $isSelected ? 'border-blue-500 bg-blue-100 ring-2 ring-blue-400' : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50' }}
-                                    {{ $cellComponent ? 'bg-green-50 border-green-400' : '' }}">
-                            
-                            @if($isSelected && !$cellComponent)
-                                <div class="absolute top-1 right-1 text-blue-600 text-xs font-bold bg-white rounded-full w-4 h-4 flex items-center justify-center">
-                                    ✓
-                                </div>
-                            @endif
+                        <div wire:mousedown="startSelection({{ $row }}, {{ $col }})"
+                             wire:mouseenter="updateSelection({{ $row }}, {{ $col }})"
+                             wire:mouseup="endSelection"
+                             style="{{ $cellComponent ? 'grid-column: span ' . $componentColspan . '; grid-row: span ' . $componentRowspan . ';' : '' }}"
+                             class="border-2 transition-all cursor-crosshair relative group select-none
+                                    {{ $isSelected ? 'border-blue-500 bg-blue-100 ring-2 ring-blue-400 z-10' : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50' }}
+                                    {{ $cellComponent ? 'bg-green-50 border-green-400 cursor-pointer' : '' }}">
                             
                             <div class="absolute top-0 left-0 text-[8px] text-gray-400 px-1">
                                 {{ chr(64 + $col) }}{{ $row }}
@@ -173,15 +188,22 @@
         </div>
     </div>
 
-    @if($showComponentMenu && !empty($selectedCols))
+    @if($showComponentMenu && $selectionStart && $selectionEnd)
     <div class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" wire:click="cancelSelection">
         <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full p-6" @click.stop>
+            @php
+                $area = [
+                    'rowStart' => min($selectionStart['row'], $selectionEnd['row']),
+                    'rowEnd' => max($selectionStart['row'], $selectionEnd['row']),
+                    'colStart' => min($selectionStart['col'], $selectionEnd['col']),
+                    'colEnd' => max($selectionStart['col'], $selectionEnd['col']),
+                ];
+                $rows = ($area['rowEnd'] - $area['rowStart']) + 1;
+                $cols = ($area['colEnd'] - $area['colStart']) + 1;
+            @endphp
             <h3 class="text-lg font-bold text-gray-900 mb-4">
-                Agregar componente en Fila {{ $selectedRow }}, Columnas 
-                @foreach($selectedCols as $c)
-                    {{ chr(64 + $c) }}{{ !$loop->last ? '-' : '' }}
-                @endforeach
-                <span class="text-sm font-normal text-gray-600">({{ count($selectedCols) }} columna{{ count($selectedCols) > 1 ? 's' : '' }} de ancho)</span>
+                Agregar componente: {{ chr(64 + $area['colStart']) }}{{ $area['rowStart'] }} - {{ chr(64 + $area['colEnd']) }}{{ $area['rowEnd'] }}
+                <span class="text-sm font-normal text-gray-600">({{ $rows }} fila{{ $rows > 1 ? 's' : '' }} × {{ $cols }} columna{{ $cols > 1 ? 's' : '' }})</span>
             </h3>
             
             <div class="grid grid-cols-3 gap-3">

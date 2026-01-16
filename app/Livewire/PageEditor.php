@@ -12,8 +12,9 @@ class PageEditor extends Component
     public $editingComponent = null;
     public $componentContent = [];
     public $componentSettings = [];
-    public $selectedRow = null;
-    public $selectedCols = []; // Array de columnas seleccionadas tipo checkbox
+    public $selectionStart = null; // ['row' => 1, 'col' => 1]
+    public $selectionEnd = null; // ['row' => 2, 'col' => 3]
+    public $isDragging = false;
     public $gridRows = 1; // Empezar con 1 fila
     public $gridCols = 12;
     public $showComponentMenu = false;
@@ -32,62 +33,59 @@ class PageEditor extends Component
         }
     }
     
-    public function selectCell($row, $col)
+    public function startSelection($row, $col)
     {
-        // Si cambia de fila, reiniciar selección
-        if ($this->selectedRow !== null && $this->selectedRow != $row) {
-            $this->selectedRow = $row;
-            $this->selectedCols = [$col];
-            return;
-        }
-        
-        $this->selectedRow = $row;
-        
-        // Toggle checkbox style
-        if (in_array($col, $this->selectedCols)) {
-            // Deseleccionar
-            $this->selectedCols = array_values(array_filter($this->selectedCols, fn($c) => $c != $col));
-        } else {
-            // Seleccionar
-            $this->selectedCols[] = $col;
-            sort($this->selectedCols);
+        $this->selectionStart = ['row' => $row, 'col' => $col];
+        $this->selectionEnd = ['row' => $row, 'col' => $col];
+        $this->isDragging = true;
+    }
+    
+    public function updateSelection($row, $col)
+    {
+        if ($this->isDragging && $this->selectionStart) {
+            $this->selectionEnd = ['row' => $row, 'col' => $col];
         }
     }
     
-    public function confirmSelection()
+    public function endSelection()
     {
-        if (empty($this->selectedCols)) {
-            return;
+        $this->isDragging = false;
+        if ($this->selectionStart && $this->selectionEnd) {
+            $this->showComponentMenu = true;
         }
-        
-        // Validar que sean consecutivas
-        sort($this->selectedCols);
-        for ($i = 0; $i < count($this->selectedCols) - 1; $i++) {
-            if ($this->selectedCols[$i + 1] - $this->selectedCols[$i] != 1) {
-                // No son consecutivas, mostrar error
-                session()->flash('error', 'Las columnas deben ser consecutivas');
-                return;
-            }
-        }
-        
-        $this->showComponentMenu = true;
     }
     
     public function cancelSelection()
     {
-        $this->selectedRow = null;
-        $this->selectedCols = [];
+        $this->selectionStart = null;
+        $this->selectionEnd = null;
+        $this->isDragging = false;
         $this->showComponentMenu = false;
+    }
+    
+    public function getSelectedArea()
+    {
+        if (!$this->selectionStart || !$this->selectionEnd) {
+            return null;
+        }
+        
+        return [
+            'rowStart' => min($this->selectionStart['row'], $this->selectionEnd['row']),
+            'rowEnd' => max($this->selectionStart['row'], $this->selectionEnd['row']),
+            'colStart' => min($this->selectionStart['col'], $this->selectionEnd['col']),
+            'colEnd' => max($this->selectionStart['col'], $this->selectionEnd['col']),
+        ];
     }
     
     public function addComponentToCell($type)
     {
-        if (empty($this->selectedCols) || $this->selectedRow === null) return;
+        $area = $this->getSelectedArea();
+        if (!$area) return;
         
-        sort($this->selectedCols);
-        $row = $this->selectedRow;
-        $col = $this->selectedCols[0];
-        $colspan = count($this->selectedCols);
+        $row = $area['rowStart'];
+        $col = $area['colStart'];
+        $rowspan = ($area['rowEnd'] - $area['rowStart']) + 1;
+        $colspan = ($area['colEnd'] - $area['colStart']) + 1;
         
         // Crear componente
         $component = PageComponent::create([
@@ -98,7 +96,7 @@ class PageEditor extends Component
                 'grid_position' => [
                     'row' => $row,
                     'col' => $col,
-                    'rowspan' => 1,
+                    'rowspan' => $rowspan,
                     'colspan' => $colspan,
                 ]
             ],
@@ -107,8 +105,8 @@ class PageEditor extends Component
         
         $this->page->refresh();
         $this->showComponentMenu = false;
-        $this->selectedRow = null;
-        $this->selectedCols = [];
+        $this->selectionStart = null;
+        $this->selectionEnd = null;
     }
     
     private function getDefaultContent($type)
