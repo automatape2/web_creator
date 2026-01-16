@@ -12,7 +12,8 @@ class PageEditor extends Component
     public $editingComponent = null;
     public $componentContent = [];
     public $componentSettings = [];
-    public $selectedCell = null; // [row, col]
+    public $selectedRow = null;
+    public $selectedCols = []; // Array de columnas seleccionadas tipo checkbox
     public $gridRows = 1; // Empezar con 1 fila
     public $gridCols = 12;
     public $showComponentMenu = false;
@@ -33,16 +34,60 @@ class PageEditor extends Component
     
     public function selectCell($row, $col)
     {
-        $this->selectedCell = ['row' => $row, 'col' => $col];
+        // Si cambia de fila, reiniciar selección
+        if ($this->selectedRow !== null && $this->selectedRow != $row) {
+            $this->selectedRow = $row;
+            $this->selectedCols = [$col];
+            return;
+        }
+        
+        $this->selectedRow = $row;
+        
+        // Toggle checkbox style
+        if (in_array($col, $this->selectedCols)) {
+            // Deseleccionar
+            $this->selectedCols = array_values(array_filter($this->selectedCols, fn($c) => $c != $col));
+        } else {
+            // Seleccionar
+            $this->selectedCols[] = $col;
+            sort($this->selectedCols);
+        }
+    }
+    
+    public function confirmSelection()
+    {
+        if (empty($this->selectedCols)) {
+            return;
+        }
+        
+        // Validar que sean consecutivas
+        sort($this->selectedCols);
+        for ($i = 0; $i < count($this->selectedCols) - 1; $i++) {
+            if ($this->selectedCols[$i + 1] - $this->selectedCols[$i] != 1) {
+                // No son consecutivas, mostrar error
+                session()->flash('error', 'Las columnas deben ser consecutivas');
+                return;
+            }
+        }
+        
         $this->showComponentMenu = true;
+    }
+    
+    public function cancelSelection()
+    {
+        $this->selectedRow = null;
+        $this->selectedCols = [];
+        $this->showComponentMenu = false;
     }
     
     public function addComponentToCell($type)
     {
-        if (!$this->selectedCell) return;
+        if (empty($this->selectedCols) || $this->selectedRow === null) return;
         
-        $row = $this->selectedCell['row'];
-        $col = $this->selectedCell['col'];
+        sort($this->selectedCols);
+        $row = $this->selectedRow;
+        $col = $this->selectedCols[0];
+        $colspan = count($this->selectedCols);
         
         // Crear componente
         $component = PageComponent::create([
@@ -54,7 +99,7 @@ class PageEditor extends Component
                     'row' => $row,
                     'col' => $col,
                     'rowspan' => 1,
-                    'colspan' => 1,
+                    'colspan' => $colspan,
                 ]
             ],
             'order' => $this->page->components->count(),
@@ -62,7 +107,8 @@ class PageEditor extends Component
         
         $this->page->refresh();
         $this->showComponentMenu = false;
-        $this->selectedCell = null;
+        $this->selectedRow = null;
+        $this->selectedCols = [];
     }
     
     private function getDefaultContent($type)

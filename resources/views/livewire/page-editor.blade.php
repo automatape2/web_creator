@@ -36,8 +36,30 @@
     <div class="p-6">
         <div class="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
             <p class="text-sm text-blue-800">
-                <strong>💡 Cómo usar:</strong> Haz clic en cualquier celda de la cuadrícula para agregar un componente. Funciona como Excel.
+                <strong>💡 Cómo usar:</strong> Selecciona columnas como checkboxes (deben ser consecutivas). Luego haz clic en "Confirmar" para agregar un componente.
             </p>
+            @if(!empty($selectedCols))
+                <div class="mt-2 flex items-center gap-2">
+                    <span class="text-sm font-semibold text-blue-900">
+                        Fila {{ $selectedRow }}: 
+                        @foreach($selectedCols as $c)
+                            {{ chr(64 + $c) }}{{ !$loop->last ? ', ' : '' }}
+                        @endforeach
+                        ({{ count($selectedCols) }} columna{{ count($selectedCols) > 1 ? 's' : '' }})
+                    </span>
+                    <button wire:click="confirmSelection" class="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700">
+                        ✓ Confirmar Selección
+                    </button>
+                    <button wire:click="cancelSelection" class="px-3 py-1 bg-gray-400 text-white text-xs rounded hover:bg-gray-500">
+                        ✗ Cancelar
+                    </button>
+                </div>
+            @endif
+            @if(session('error'))
+                <div class="mt-2 text-sm text-red-700 bg-red-100 border border-red-300 rounded px-3 py-2">
+                    {{ session('error') }}
+                </div>
+            @endif
         </div>
 
         <!-- Grid Controls -->
@@ -65,16 +87,38 @@
                         @php
                             $cellComponent = $page->components->first(function($comp) use ($row, $col) {
                                 $pos = $comp->settings['grid_position'] ?? null;
-                                return $pos && $pos['row'] == $row && $pos['col'] == $col;
+                                if (!$pos || $pos['row'] != $row) return false;
+                                
+                                $colspan = $pos['colspan'] ?? 1;
+                                $componentCol = $pos['col'];
+                                
+                                return $col >= $componentCol && $col < ($componentCol + $colspan);
                             });
+
+                            $isSelected = $selectedRow == $row && in_array($col, $selectedCols);
                             
-                            $isSelected = $selectedCell && $selectedCell['row'] == $row && $selectedCell['col'] == $col;
-                        @endphp
-                        
-                        <div wire:click="selectCell({{ $row }}, {{ $col }})"
+                            // Verificar si esta celda es la primera de un componente con colspan
+                            $isComponentStart = $cellComponent && ($cellComponent->settings['grid_position']['col'] ?? null) == $col;
+                            
+                            // Si es parte de un componente pero no es el inicio, skip
+                            if ($cellComponent && !$isComponentStart) {
+                                continue;
+                            }
+                            
+                            $componentColspan = 1;
+                            if ($cellComponent) {
+                                $componentColspan = $cellComponent->settings['grid_position']['colspan'] ?? 1;
+                            }
+                             style="{{ $cellComponent ? 'grid-column: span ' . $componentColspan . ';' : '' }}"
                              class="border-2 transition-all cursor-pointer relative group
-                                    {{ $isSelected ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-300' : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50' }}
+                                    {{ $isSelected ? 'border-blue-500 bg-blue-100 ring-2 ring-blue-400' : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50' }}
                                     {{ $cellComponent ? 'bg-green-50 border-green-400' : '' }}">
+                            
+                            @if($isSelected && !$cellComponent)
+                                <div class="absolute top-1 right-1 text-blue-600 text-xs font-bold bg-white rounded-full w-4 h-4 flex items-center justify-center">
+                                    ✓
+                                </div>
+                            @endif
                             
                             <div class="absolute top-0 left-0 text-[8px] text-gray-400 px-1">
                                 {{ chr(64 + $col) }}{{ $row }}
@@ -126,11 +170,15 @@
         </div>
     </div>
 
-    @if($showComponentMenu && $selectedCell)
-    <div class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" wire:click="$set('showComponentMenu', false)">
+    @if($showComponentMenu && !empty($selectedCols))
+    <div class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" wire:click="cancelSelection">
         <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full p-6" @click.stop>
             <h3 class="text-lg font-bold text-gray-900 mb-4">
-                Agregar componente en celda {{ chr(64 + $selectedCell['col']) }}{{ $selectedCell['row'] }}
+                Agregar componente en Fila {{ $selectedRow }}, Columnas 
+                @foreach($selectedCols as $c)
+                    {{ chr(64 + $c) }}{{ !$loop->last ? '-' : '' }}
+                @endforeach
+                <span class="text-sm font-normal text-gray-600">({{ count($selectedCols) }} columna{{ count($selectedCols) > 1 ? 's' : '' }} de ancho)</span>
             </h3>
             
             <div class="grid grid-cols-3 gap-3">
@@ -158,7 +206,7 @@
             </div>
             
             <div class="mt-4 text-center">
-                <button wire:click="$set('showComponentMenu', false)" class="px-4 py-2 text-gray-600 hover:text-gray-800">
+                <button wire:click="cancelSelection" class="px-4 py-2 text-gray-600 hover:text-gray-800">
                     Cancelar
                 </button>
             </div>
