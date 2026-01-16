@@ -1,5 +1,5 @@
 @php
-    $html = $content['html'] ?? $content['text'] ?? '';
+    $html = $content['html'] ?? $content['text'] ?? $content['content'] ?? '';
     $textAlign = $settings['text_align'] ?? 'left';
 @endphp
 
