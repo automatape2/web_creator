@@ -36,9 +36,14 @@
     <div class="p-6">
         <div class="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
             <p class="text-sm text-blue-800">
-                <strong>💡 Cómo usar:</strong> Arrastra sobre las celdas para seleccionar el área del componente (ancho y alto). Luego elige el tipo de componente.
+                <strong>💡 Cómo usar:</strong> Arrastra sobre celdas vacías para crear componentes. Arrastra un componente sobre otro para intercambiar posiciones y tamaños.
             </p>
-            @if($selectionStart && $selectionEnd)
+            @if($draggingComponent)
+                <div class="mt-2 p-2 bg-purple-100 border border-purple-300 rounded text-sm text-purple-800">
+                    🔄 <strong>Arrastrando componente...</strong> Suéltalo sobre otro para intercambiar.
+                </div>
+            @endif
+            @if($selectionStart && $selectionEnd && !$draggingComponent)
                 @php
                     $area = [
                         'rowStart' => min($selectionStart['row'], $selectionEnd['row']),
@@ -130,13 +135,28 @@
                             }
                         @endphp
 
-                        <div wire:mousedown="startSelection({{ $row }}, {{ $col }})"
-                             wire:mouseenter="updateSelection({{ $row }}, {{ $col }})"
-                             wire:mouseup="endSelection"
+                        <div 
+                             @if(!$cellComponent)
+                                wire:mousedown="startSelection({{ $row }}, {{ $col }})"
+                                wire:mouseenter="updateSelection({{ $row }}, {{ $col }})"
+                                wire:mouseup="endSelection"
+                             @endif
+                             @if($cellComponent)
+                                draggable="true"
+                                ondragstart="@this.call('startDragging', {{ $cellComponent->id }})"
+                                ondragenter="event.preventDefault(); @this.call('setDropTarget', {{ $cellComponent->id }})"
+                                ondragover="event.preventDefault();"
+                                ondragleave="@this.call('clearDropTarget')"
+                                ondrop="event.preventDefault(); @this.call('swapComponents', {{ $draggingComponent }}, {{ $cellComponent->id }})"
+                                ondragend="@this.call('cancelSelection')"
+                             @endif
                              style="{{ $cellComponent ? 'grid-column: span ' . $componentColspan . '; grid-row: span ' . $componentRowspan . ';' : '' }}"
-                             class="border-2 transition-all cursor-crosshair relative group select-none
+                             class="border-2 transition-all relative group select-none
+                                    {{ !$cellComponent ? 'cursor-crosshair' : 'cursor-move' }}
                                     {{ $isSelected ? 'border-blue-500 bg-blue-100 ring-2 ring-blue-400 z-10' : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50' }}
-                                    {{ $cellComponent ? 'bg-green-50 border-green-400 cursor-pointer' : '' }}">
+                                    {{ $cellComponent ? 'bg-green-50 border-green-400' : '' }}
+                                    {{ $draggingComponent == ($cellComponent->id ?? null) ? 'opacity-40 ring-4 ring-purple-400' : '' }}
+                                    {{ $dropTarget == ($cellComponent->id ?? null) && $draggingComponent && $draggingComponent != ($cellComponent->id ?? null) ? 'ring-4 ring-yellow-400 bg-yellow-100 transform scale-105' : '' }}">
                             
                             <div class="absolute top-0 left-0 text-[8px] text-gray-400 px-1">
                                 {{ chr(64 + $col) }}{{ $row }}
@@ -166,12 +186,14 @@
                                     
                                     <div class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 flex gap-1">
                                         <button wire:click.stop="editComponent({{ $cellComponent->id }})" 
-                                                class="bg-blue-500 text-white rounded px-1 text-[10px] hover:bg-blue-600">
+                                                class="bg-blue-500 text-white rounded px-1 text-[10px] hover:bg-blue-600"
+                                                title="Editar">
                                             ✏️
                                         </button>
                                         <button wire:click.stop="deleteComponent({{ $cellComponent->id }})" 
                                                 wire:confirm="¿Eliminar?"
-                                                class="bg-red-500 text-white rounded px-1 text-[10px] hover:bg-red-600">
+                                                class="bg-red-500 text-white rounded px-1 text-[10px] hover:bg-red-600"
+                                                title="Eliminar">
                                             🗑️
                                         </button>
                                     </div>

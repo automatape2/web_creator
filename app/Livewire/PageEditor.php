@@ -15,6 +15,8 @@ class PageEditor extends Component
     public $selectionStart = null; // ['row' => 1, 'col' => 1]
     public $selectionEnd = null; // ['row' => 2, 'col' => 3]
     public $isDragging = false;
+    public $draggingComponent = null; // ID del componente siendo arrastrado
+    public $dropTarget = null; // ID del componente sobre el que se está arrastrando
     public $gridRows = 1; // Empezar con 1 fila
     public $gridCols = 12;
     public $showComponentMenu = false;
@@ -65,6 +67,56 @@ class PageEditor extends Component
         $this->selectionEnd = null;
         $this->isDragging = false;
         $this->showComponentMenu = false;
+        $this->draggingComponent = null;
+        $this->dropTarget = null;
+    }
+    
+    public function startDragging($componentId)
+    {
+        $this->draggingComponent = $componentId;
+    }
+    
+    public function setDropTarget($componentId)
+    {
+        $this->dropTarget = $componentId;
+    }
+    
+    public function clearDropTarget()
+    {
+        $this->dropTarget = null;
+    }
+    
+    public function swapComponents($componentId1, $componentId2)
+    {
+        if ($componentId1 == $componentId2) {
+            $this->draggingComponent = null;
+            $this->dropTarget = null;
+            return;
+        }
+        
+        $comp1 = PageComponent::find($componentId1);
+        $comp2 = PageComponent::find($componentId2);
+        
+        if (!$comp1 || !$comp2) {
+            $this->draggingComponent = null;
+            $this->dropTarget = null;
+            return;
+        }
+        
+        $settings1 = $comp1->settings;
+        $settings2 = $comp2->settings;
+        
+        // Intercambiar toda la posición (row, col, rowspan, colspan)
+        $tempPosition = $settings1['grid_position'];
+        $settings1['grid_position'] = $settings2['grid_position'];
+        $settings2['grid_position'] = $tempPosition;
+        
+        $comp1->update(['settings' => $settings1]);
+        $comp2->update(['settings' => $settings2]);
+        
+        $this->draggingComponent = null;
+        $this->dropTarget = null;
+        $this->page->refresh();
     }
     
     public function getSelectedArea()
