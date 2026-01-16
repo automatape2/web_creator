@@ -86,18 +86,8 @@ class LayoutSelector extends Component
                 'layout_type' => $this->selectedLayout,
                 'structure' => $this->layouts[$this->selectedLayout]['structure'],
                 'has_cart' => $this->webType === 'shop',
+                'grid_rows' => 10, // Inicializar con 10 filas
             ],
-        ]);
-        
-        // Agregar un componente de inicio básico
-        $page->components()->create([
-            'type' => 'hero',
-            'content' => [
-                'title' => $this->pageTitle,
-                'subtitle' => $this->pageDescription ?: 'Empieza a construir tu página',
-            ],
-            'settings' => ['background' => 'gradient', 'text_align' => 'center'],
-            'order' => 0,
         ]);
         
         // Redirigir al editor visual

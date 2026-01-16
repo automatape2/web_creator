@@ -48,12 +48,36 @@
         .primary-bg {
             background: #667eea;
         }
+        
+        /* CSS Grid Layout */
+        .grid-layout {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            grid-auto-rows: minmax(80px, auto);
+            gap: 1rem;
+            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
     </style>
 </head>
 <body class="antialiased">
-    <div id="page-content">
-        @foreach($page->components as $component)
-            @include('components.page-component', ['component' => $component])
+    <div id="page-content" class="grid-layout">
+        @foreach($page->components->sortBy(function($component) {
+            $pos = $component->settings['grid_position'] ?? ['row' => 1, 'col' => 1];
+            return ($pos['row'] * 100) + $pos['col'];
+        }) as $component)
+            @php
+                $gridPos = $component->settings['grid_position'] ?? ['row' => 1, 'col' => 1, 'rowspan' => 1, 'colspan' => 1];
+                $row = $gridPos['row'];
+                $col = $gridPos['col'];
+                $rowspan = $gridPos['rowspan'] ?? 1;
+                $colspan = $gridPos['colspan'] ?? 1;
+            @endphp
+            <div style="grid-row: {{ $row }} / {{ $row + $rowspan }}; grid-column: {{ $col }} / {{ $col + $colspan }};">
+                @include('components.page-component', ['component' => $component])
+            </div>
         @endforeach
     </div>
     
