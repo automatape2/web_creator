@@ -23,11 +23,15 @@ class PageEditor extends Component
     {
         $this->page = $page->load('components');
         
+        // Cargar gridRows desde meta_tags o usar 1 por defecto
+        $this->gridRows = $this->page->meta_tags['grid_rows'] ?? 1;
+        
         // Inicializar grid si no existe
         if (!isset($this->page->meta_tags['grid_layout'])) {
             $this->page->update([
                 'meta_tags' => array_merge($this->page->meta_tags ?? [], [
                     'grid_layout' => [],
+                    'grid_rows' => 1,
                 ])
             ]);
         }
@@ -202,12 +206,22 @@ class PageEditor extends Component
     public function addRow()
     {
         $this->gridRows++;
+        $this->page->update([
+            'meta_tags' => array_merge($this->page->meta_tags ?? [], [
+                'grid_rows' => $this->gridRows,
+            ])
+        ]);
     }
     
     public function removeRow()
     {
         if ($this->gridRows > 1) {
             $this->gridRows--;
+            $this->page->update([
+                'meta_tags' => array_merge($this->page->meta_tags ?? [], [
+                    'grid_rows' => $this->gridRows,
+                ])
+            ]);
         }
     }
     
