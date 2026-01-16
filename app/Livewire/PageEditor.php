@@ -49,7 +49,8 @@ class PageEditor extends Component
     public function updateSelection($row, $col)
     {
         if ($this->isDragging && $this->selectionStart) {
-            $this->selectionEnd = ['row' => $row, 'col' => $col];
+            // Solo permitir selección horizontal (misma fila)
+            $this->selectionEnd = ['row' => $this->selectionStart['row'], 'col' => $col];
         }
     }
     
@@ -140,7 +141,6 @@ class PageEditor extends Component
         
         $row = $area['rowStart'];
         $col = $area['colStart'];
-        $rowspan = ($area['rowEnd'] - $area['rowStart']) + 1;
         $colspan = ($area['colEnd'] - $area['colStart']) + 1;
         
         // Crear componente
@@ -152,7 +152,7 @@ class PageEditor extends Component
                 'grid_position' => [
                     'row' => $row,
                     'col' => $col,
-                    'rowspan' => $rowspan,
+                    'rowspan' => 1,
                     'colspan' => $colspan,
                 ]
             ],

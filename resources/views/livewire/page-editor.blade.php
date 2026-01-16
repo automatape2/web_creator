@@ -36,7 +36,7 @@
     <div class="p-6">
         <div class="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
             <p class="text-sm text-blue-800">
-                <strong>💡 Cómo usar:</strong> Arrastra sobre celdas vacías para crear componentes. Arrastra un componente sobre otro para intercambiar posiciones y tamaños.
+                <strong>💡 Cómo usar:</strong> Arrastra horizontalmente sobre celdas vacías para definir el ancho. Arrastra un componente sobre otro para intercambiar posiciones.
             </p>
             @if($draggingComponent)
                 <div class="mt-2 p-2 bg-purple-100 border border-purple-300 rounded text-sm text-purple-800">
@@ -56,8 +56,8 @@
                 @endphp
                 <div class="mt-2 flex items-center gap-2">
                     <span class="text-sm font-semibold text-blue-900">
-                        Área seleccionada: {{ chr(64 + $area['colStart']) }}{{ $area['rowStart'] }} - {{ chr(64 + $area['colEnd']) }}{{ $area['rowEnd'] }}
-                        ({{ $rows }} fila{{ $rows > 1 ? 's' : '' }} × {{ $cols }} columna{{ $cols > 1 ? 's' : '' }})
+                        Fila {{ $area['rowStart'] }}: Columnas {{ chr(64 + $area['colStart']) }} - {{ chr(64 + $area['colEnd']) }}
+                        ({{ $cols }} columna{{ $cols > 1 ? 's' : '' }} de ancho)
                     </span>
                     @if(!$isDragging)
                     <button wire:click="endSelection" class="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700">
@@ -224,8 +224,8 @@
                 $cols = ($area['colEnd'] - $area['colStart']) + 1;
             @endphp
             <h3 class="text-lg font-bold text-gray-900 mb-4">
-                Agregar componente: {{ chr(64 + $area['colStart']) }}{{ $area['rowStart'] }} - {{ chr(64 + $area['colEnd']) }}{{ $area['rowEnd'] }}
-                <span class="text-sm font-normal text-gray-600">({{ $rows }} fila{{ $rows > 1 ? 's' : '' }} × {{ $cols }} columna{{ $cols > 1 ? 's' : '' }})</span>
+                Agregar componente en Fila {{ $area['rowStart'] }}: Columnas {{ chr(64 + $area['colStart']) }}-{{ chr(64 + $area['colEnd']) }}
+                <span class="text-sm font-normal text-gray-600">({{ $cols }} columna{{ $cols > 1 ? 's' : '' }} de ancho)</span>
             </h3>
             
             <div class="grid grid-cols-3 gap-3">
