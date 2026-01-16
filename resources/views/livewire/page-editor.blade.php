@@ -109,6 +109,9 @@
                             if ($cellComponent) {
                                 $componentColspan = $cellComponent->settings['grid_position']['colspan'] ?? 1;
                             }
+                        @endphp
+
+                        <div wire:click="selectCell({{ $row }}, {{ $col }})"
                              style="{{ $cellComponent ? 'grid-column: span ' . $componentColspan . ';' : '' }}"
                              class="border-2 transition-all cursor-pointer relative group
                                     {{ $isSelected ? 'border-blue-500 bg-blue-100 ring-2 ring-blue-400' : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50' }}
