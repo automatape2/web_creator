@@ -169,7 +169,7 @@ class PageEditor extends Component
     {
         $defaults = [
             'hero' => ['title' => 'Título Hero', 'subtitle' => 'Subtítulo'],
-            'text' => ['title' => 'Título', 'content' => 'Contenido de texto...'],
+            'text' => ['html' => '<h2>Título de la sección</h2><p>Escribe tu contenido aquí. Puedes usar HTML.</p>'],
             'image' => ['url' => 'https://via.placeholder.com/800x400'],
             'features' => ['title' => 'Características'],
             'gallery' => ['title' => 'Galería'],

@@ -64,12 +64,14 @@
 </head>
 <body class="antialiased">
     <div id="page-content" class="grid-layout">
-        @foreach($page->components->sortBy(function($component) {
-            $pos = $component->settings['grid_position'] ?? ['row' => 1, 'col' => 1];
+        @foreach($page->components->filter(function($component) {
+            return isset($component->settings['grid_position']);
+        })->sortBy(function($component) {
+            $pos = $component->settings['grid_position'];
             return ($pos['row'] * 100) + $pos['col'];
         }) as $component)
             @php
-                $gridPos = $component->settings['grid_position'] ?? ['row' => 1, 'col' => 1, 'rowspan' => 1, 'colspan' => 1];
+                $gridPos = $component->settings['grid_position'];
                 $row = $gridPos['row'];
                 $col = $gridPos['col'];
                 $rowspan = $gridPos['rowspan'] ?? 1;
